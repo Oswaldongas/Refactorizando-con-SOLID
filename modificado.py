@@ -43,13 +43,9 @@ class OrderService:
 
     def process(self, order):
         total = sum(item["price"] for item in order["items"])
-
-        # OCP Aplicado: El cálculo del descuento está delegado. 
-        # Si hay nuevos descuentos, OrderService no cambia.
         total = self.discount_strategy.apply(total)
 
-        # OCP Aplicado: El cobro usa polimorfismo. 
-        # Si hay nuevos métodos de pago, OrderService no cambia.
+  
         self.payment_method.pay(total)
 
         with open("orders.txt", "a") as file:
