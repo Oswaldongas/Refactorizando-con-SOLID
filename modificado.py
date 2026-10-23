@@ -23,26 +23,34 @@ class GiftCardPayment(Payment):
 
 
 #errores en codigo, falla en principio solid, se hacen operaciones de negocio, display y persistencia de datos en una sola clase, hay que dividir responsabilidades
+#Abstracciones para OCP, cada que se agregue un nuevo descuento se crea una nueva clase que herede de DiscountStrategy y se implementa el método apply.
+class DiscountStrategy:
+    def apply(self, total):
+        return total
+
+class PremiumDiscount(DiscountStrategy):
+    def apply(self, total):
+        return total * 0.9
+
+class StandardDiscount(DiscountStrategy):
+    def apply(self, total):
+        return total
+
+
+
 class OrderService:
-    def __init__(self, payment_type):
-        self.payment_type = payment_type
+    #Ahora depende de las abstracciones Payment y DiscountStrategy, no de implementaciones concretas.
+    def __init__(self, payment_method: Payment, discount_strategy: DiscountStrategy):
+        self.payment_method = payment_method
+        self.discount_strategy = discount_strategy
 
     def process(self, order):
         total = sum(item["price"] for item in order["items"])
+        total = self.discount_strategy.apply(total)
 
-        if order["customer_type"] == "premium":
-            total *= 0.9
+  
+        self.payment_method.pay(total)
 
-        #Open/close 
-        if self.payment_type == "card":
-            payment = CardPayment()
-        elif self.payment_type == "gift_card":
-            payment = GiftCardPayment()
-        else:
-            raise ValueError("Unsupported payment type")
-        #logica de negocio
-        payment.pay(total)
-        #persistencia de datos
         with open("orders.txt", "a") as file:
             file.write(f"{total}\n")
         #disply
