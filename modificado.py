@@ -20,24 +20,37 @@ class GiftCardPayment(Payment):
     # Las tarjetas de regalo no permiten reembolsos.
 
 
+#Abstracciones para OCP, cada que se agregue un nuevo descuento se crea una nueva clase que herede de DiscountStrategy y se implementa el método apply.
+class DiscountStrategy:
+    def apply(self, total):
+        return total
+
+class PremiumDiscount(DiscountStrategy):
+    def apply(self, total):
+        return total * 0.9
+
+class StandardDiscount(DiscountStrategy):
+    def apply(self, total):
+        return total
+
+
+
 class OrderService:
-    def __init__(self, payment_type):
-        self.payment_type = payment_type
+    #Ahora depende de las abstracciones Payment y DiscountStrategy, no de implementaciones concretas.
+    def __init__(self, payment_method: Payment, discount_strategy: DiscountStrategy):
+        self.payment_method = payment_method
+        self.discount_strategy = discount_strategy
 
     def process(self, order):
         total = sum(item["price"] for item in order["items"])
 
-        if order["customer_type"] == "premium":
-            total *= 0.9
+        # OCP Aplicado: El cálculo del descuento está delegado. 
+        # Si hay nuevos descuentos, OrderService no cambia.
+        total = self.discount_strategy.apply(total)
 
-        if self.payment_type == "card":
-            payment = CardPayment()
-        elif self.payment_type == "gift_card":
-            payment = GiftCardPayment()
-        else:
-            raise ValueError("Unsupported payment type")
-
-        payment.pay(total)
+        # OCP Aplicado: El cobro usa polimorfismo. 
+        # Si hay nuevos métodos de pago, OrderService no cambia.
+        self.payment_method.pay(total)
 
         with open("orders.txt", "a") as file:
             file.write(f"{total}\n")
