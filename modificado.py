@@ -1,12 +1,15 @@
+#Inverse dependency principle, cambiado Payment para hacer operaciones de pago unicamente, y creada interfaz Refund para solo hacer operaciones
+#de devolucion, no forzamos a utilizar implementaciones de metodos a clases que no la requieren
 class Payment:
     def pay(self, amount):
         raise NotImplementedError
 
+class Refund:
     def refund(self, amount):
         raise NotImplementedError
 
 
-class CardPayment(Payment):
+class CardPayment(Payment, Refund):
     def pay(self, amount):
         print(f"Charge card: {amount}")
 
@@ -17,9 +20,9 @@ class CardPayment(Payment):
 class GiftCardPayment(Payment):
     def pay(self, amount):
         print(f"Charge gift card: {amount}")
-    # Las tarjetas de regalo no permiten reembolsos.
 
 
+#errores en codigo, falla en principio solid, se hacen operaciones de negocio, display y persistencia de datos en una sola clase, hay que dividir responsabilidades
 class OrderService:
     def __init__(self, payment_type):
         self.payment_type = payment_type
@@ -30,18 +33,19 @@ class OrderService:
         if order["customer_type"] == "premium":
             total *= 0.9
 
+        #Open/close 
         if self.payment_type == "card":
             payment = CardPayment()
         elif self.payment_type == "gift_card":
             payment = GiftCardPayment()
         else:
             raise ValueError("Unsupported payment type")
-
+        #logica de negocio
         payment.pay(total)
-
+        #persistencia de datos
         with open("orders.txt", "a") as file:
             file.write(f"{total}\n")
-
+        #disply
         print(f"Invoice total: {total}")
         print(f"Sending invoice to {order['email']}")
 
